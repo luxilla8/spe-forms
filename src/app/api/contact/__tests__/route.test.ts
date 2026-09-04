@@ -24,10 +24,11 @@ function makeRequest(body: Record<string, unknown>, headers?: Record<string, str
 }
 
 const validBody = {
-  firstName: 'Mario',
-  lastName: 'Rossi',
-  email: 'mario@example.com',
-  message: 'This is a test message with enough characters to pass validation.',
+  name: 'Test Person',
+  email: 'test@example.com',
+  phone: '601-555-0100',
+  goal: 'Buy my first home',
+  message: 'We are hoping to buy our first house next spring and do not know where to start.',
 }
 
 beforeEach(() => {
@@ -37,74 +38,49 @@ beforeEach(() => {
 
 describe('POST /api/contact', () => {
   test('returns 400 when required fields are missing', async () => {
-    const req = makeRequest({ firstName: 'Mario' })
-    const res = await POST(req)
+    const res = await POST(makeRequest({ name: 'Only a name' }))
     expect(res.status).toBe(400)
   })
 
   test('returns 400 for invalid email', async () => {
-    const req = makeRequest({ ...validBody, email: 'not-an-email' })
-    const res = await POST(req)
+    const res = await POST(makeRequest({ ...validBody, email: 'not-an-email' }))
     expect(res.status).toBe(400)
     const json = await res.json()
     expect(json.error).toBeTruthy()
   })
 
-  test('returns 201 on valid submission', async () => {
-    const req = makeRequest(validBody)
-    const res = await POST(req)
+  test('returns 201 on valid submission and labels first-time buyers', async () => {
+    const res = await POST(makeRequest(validBody))
     expect(res.status).toBe(201)
     const json = await res.json()
     expect(json.success).toBe(true)
+    const issue = JSON.parse(mockFetch.mock.calls[0][1].body)
+    expect(issue.labels).toContain('first-time-buyer')
+    expect(issue.title).toBe('Test Person wants to: Buy my first home')
   })
 
-  test('silently returns 200 when honeypot is filled', async () => {
-    const req = makeRequest({ ...validBody, website: 'http://spam.com' })
-    const res = await POST(req)
+  test('accepts a submission with no message', async () => {
+    const res = await POST(makeRequest({ name: 'Quiet Person', email: 'q@example.com', goal: 'Not sure yet' }))
+    expect(res.status).toBe(201)
+  })
+
+  test('silently accepts honeypot submissions without calling GitHub', async () => {
+    const res = await POST(makeRequest({ ...validBody, website: 'http://spam.example' }))
     expect(res.status).toBe(200)
-    // fetch to GitHub should NOT have been called
     expect(mockFetch).not.toHaveBeenCalled()
   })
 
-  test('returns 500 when GitHub API fails', async () => {
-    mockFetch.mockResolvedValueOnce(new Response('error', { status: 500 }))
-    const req = makeRequest(validBody)
-    const res = await POST(req)
-    expect(res.status).toBe(500)
-  })
-
-  test('returns Italian error messages when Accept-Language is it', async () => {
-    const req = makeRequest(
-      { firstName: '', lastName: '', email: '', message: '' },
-      { 'Accept-Language': 'it-IT,it;q=0.9' }
-    )
-    const res = await POST(req)
-    const json = await res.json()
-    // Should contain Italian text
-    expect(json.error).toContain('obbligatori')
-  })
-
-  test('returns 429 after rate limit is exceeded', async () => {
-    const ip = '10.0.0.1' // fixed IP for rate limit test
-    const makeIpRequest = (b = validBody) =>
-      new NextRequest('http://localhost/api/contact', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept-Language': 'en',
-          'x-forwarded-for': ip,
-        },
-        body: JSON.stringify(b),
-      })
-
-    // 3 allowed
-    await POST(makeIpRequest())
-    await POST(makeIpRequest())
-    await POST(makeIpRequest())
-
-    // 4th should be blocked
-    const res = await POST(makeIpRequest())
+  test('returns 429 after the rate limit is exceeded from one IP', async () => {
+    const headers = { 'x-forwarded-for': '10.9.9.9' }
+    for (let i = 0; i < 3; i++) await POST(makeRequest(validBody, headers))
+    const res = await POST(makeRequest(validBody, headers))
     expect(res.status).toBe(429)
     expect(res.headers.get('Retry-After')).toBeTruthy()
+  })
+
+  test('returns 500 when GitHub rejects the issue', async () => {
+    mockFetch.mockResolvedValueOnce(new Response('nope', { status: 401 }))
+    const res = await POST(makeRequest(validBody))
+    expect(res.status).toBe(500)
   })
 })

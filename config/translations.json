@@ -1,27 +1,27 @@
 {
   "en": {
-    "title": "Contact Us",
-    "subtitle": "Fill out the form and we'll get back to you soon.",
+    "title": "Tell Arlean what you're looking for.",
+    "subtitle": "Send a few details and she'll reach out to set up a conversation.",
     "fields": {
-      "firstName": "First Name",
-      "lastName": "Last Name",
+      "name": "Your name",
       "email": "Email",
-      "company": "Company",
-      "message": "Message"
+      "phone": "Phone (optional)",
+      "goal": "What are you hoping to do?",
+      "message": "Anything you'd like Arlean to know?"
     },
     "placeholders": {
-      "firstName": "John",
-      "lastName": "Doe",
-      "email": "john.doe@example.com",
-      "company": "Your company (optional)",
-      "message": "How can we help you?"
+      "name": "",
+      "email": "",
+      "phone": "",
+      "goal": "",
+      "message": ""
     },
     "buttons": {
-      "submit": "Send Message",
-      "submitting": "Sending..."
+      "submit": "Send to Arlean",
+      "submitting": "Sending"
     },
     "messages": {
-      "success": "Thank you! We'll contact you soon.",
+      "success": "Sent. Arlean will be in touch soon.",
       "error": "Error",
       "requiredFields": "Please fill in all required fields.",
       "invalidEmail": "Please enter a valid email address.",
@@ -36,18 +36,18 @@
     "title": "Contattaci",
     "subtitle": "Compila il modulo e ti risponderemo presto.",
     "fields": {
-      "firstName": "Nome",
-      "lastName": "Cognome",
+      "name": "Nome",
       "email": "Email",
-      "company": "Azienda",
+      "phone": "Telefono",
+      "goal": "Cosa vorresti fare?",
       "message": "Messaggio"
     },
     "placeholders": {
-      "firstName": "Mario",
-      "lastName": "Rossi",
-      "email": "mario.rossi@esempio.it",
-      "company": "La tua azienda (opzionale)",
-      "message": "Come possiamo aiutarti?"
+      "name": "",
+      "email": "",
+      "phone": "",
+      "goal": "",
+      "message": ""
     },
     "buttons": {
       "submit": "Invia Messaggio",

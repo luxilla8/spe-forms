@@ -1,57 +1,39 @@
 {
   "labels": {
     "it": {
-      "firstName": "Nome",
-      "lastName": "Cognome",
+      "name": "Nome",
       "email": "Email",
-      "company": "Azienda",
+      "phone": "Telefono",
+      "goal": "Cosa vorresti fare?",
       "message": "Messaggio"
     },
     "en": {
-      "firstName": "First Name",
-      "lastName": "Last Name",
+      "name": "Your name",
       "email": "Email",
-      "company": "Company",
-      "message": "Message"
+      "phone": "Phone (optional)",
+      "goal": "What are you hoping to do?",
+      "message": "Anything you'd like Arlean to know?"
     }
   },
   "form": {
     "fields": [
+      { "id": "name", "type": "text", "required": true, "colSpan": 1, "validation": { "min": 1, "max": 120 } },
+      { "id": "email", "type": "email", "required": true, "colSpan": 1, "validation": { "max": 254 } },
+      { "id": "phone", "type": "tel", "required": false, "colSpan": 1, "validation": { "max": 40 } },
       {
-        "id": "firstName",
-        "type": "text",
-        "required": true,
-        "colSpan": 1,
-        "validation": { "min": 1, "max": 100 }
-      },
-      {
-        "id": "lastName",
-        "type": "text",
-        "required": true,
-        "colSpan": 1,
-        "validation": { "min": 1, "max": 100 }
-      },
-      {
-        "id": "email",
-        "type": "email",
-        "required": true,
-        "colSpan": 2,
-        "validation": { "max": 254 }
-      },
-      {
-        "id": "company",
-        "type": "text",
+        "id": "goal",
+        "type": "select",
         "required": false,
-        "colSpan": 2,
-        "validation": { "max": 200 }
+        "colSpan": 1,
+        "options": [
+          { "value": "Buy my first home", "label": "Buy my first home" },
+          { "value": "Buy a home", "label": "Buy a home" },
+          { "value": "Sell my home", "label": "Sell my home" },
+          { "value": "Plan a move for retirement", "label": "Plan a move for retirement" },
+          { "value": "Not sure yet", "label": "Not sure yet" }
+        ]
       },
-      {
-        "id": "message",
-        "type": "textarea",
-        "required": true,
-        "colSpan": 2,
-        "validation": { "min": 20, "max": 5000 }
-      }
+      { "id": "message", "type": "textarea", "required": false, "colSpan": 2, "validation": { "max": 5000 } }
     ]
   }
 }
