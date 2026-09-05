@@ -6,7 +6,7 @@ import { classifyLead } from '../../../lib/classify'
 import translations from '../../../../config/translations.json'
 
 /**
- * Contact endpoint for the Signature Properties Elite site.
+ * Contact endpoint for the Signature Elite Properties site.
  *
  * Accepts the site's fields (name, email, phone, goal, message) as JSON
  * (fetch from the page) or as form-encoded (the no-JS fallback, which is
@@ -17,13 +17,22 @@ import translations from '../../../../config/translations.json'
 type Locale = 'en' | 'it'
 type TranslationMessages = typeof translations.en.messages
 
-const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || '*'
-// Where a no-JS form post is sent back to. Falls back to the allowed origin.
+// ALLOWED_ORIGIN may be a comma-separated list (production site plus preview hosts).
+// The first entry is the default; a request from any listed origin gets its own origin echoed back.
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGIN || '*').split(',').map(o => o.trim()).filter(Boolean)
+const ALLOWED_ORIGIN = ALLOWED_ORIGINS[0] || '*'
+// Where a no-JS form post is sent back to. Falls back to the first allowed origin.
 const SITE_URL = process.env.SITE_URL || (ALLOWED_ORIGIN !== '*' ? ALLOWED_ORIGIN : '')
 
-function corsHeaders() {
+function pickOrigin(request?: NextRequest): string {
+  const origin = request?.headers.get('origin') ?? ''
+  if (ALLOWED_ORIGINS.includes('*')) return '*'
+  return ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGIN
+}
+
+function corsHeaders(request?: NextRequest) {
   return {
-    'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+    'Access-Control-Allow-Origin': pickOrigin(request),
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
     Vary: 'Origin',
@@ -61,6 +70,7 @@ const GOALS = new Set([
   'Buy a home',
   'Sell my home',
   'Plan a move for retirement',
+  'Join Signature Elite Properties as an agent',
   'Not sure yet',
 ])
 
@@ -88,17 +98,17 @@ async function readBody(request: NextRequest): Promise<{ data: ContactFormData; 
   }
 }
 
-function reply(isForm: boolean, status: number, body: Record<string, unknown>, extraHeaders: Record<string, string> = {}) {
+function reply(request: NextRequest, isForm: boolean, status: number, body: Record<string, unknown>, extraHeaders: Record<string, string> = {}) {
   if (isForm && SITE_URL) {
     const ok = status < 400
     const url = `${SITE_URL.replace(/\/$/, '')}/?${ok ? 'sent=1' : 'error=1'}#form`
     return NextResponse.redirect(url, { status: 303, headers: extraHeaders })
   }
-  return NextResponse.json(body, { status, headers: { ...corsHeaders(), ...extraHeaders } })
+  return NextResponse.json(body, { status, headers: { ...corsHeaders(request), ...extraHeaders } })
 }
 
-export async function OPTIONS() {
-  return new Response(null, { status: 204, headers: corsHeaders() })
+export async function OPTIONS(request: NextRequest) {
+  return new Response(null, { status: 204, headers: corsHeaders(request) })
 }
 
 export async function POST(request: NextRequest) {
@@ -114,7 +124,7 @@ export async function POST(request: NextRequest) {
 
     const rateCheck = checkRateLimit(ip)
     if (!rateCheck.allowed) {
-      return reply(isForm, 429, { error: msg(locale, 'tooManyRequests', { seconds: rateCheck.retryAfter }) }, {
+      return reply(request, isForm, 429, { error: msg(locale, 'tooManyRequests', { seconds: rateCheck.retryAfter }) }, {
         'Retry-After': String(rateCheck.retryAfter),
         'X-RateLimit-Remaining': '0',
       })
@@ -126,7 +136,7 @@ export async function POST(request: NextRequest) {
 
     // Honeypot: pretend success so bots learn nothing
     if (body.website && body.website.trim().length > 0) {
-      return reply(isForm, 200, { success: true })
+      return reply(request, isForm, 200, { success: true })
     }
 
     // Sanitize
@@ -139,11 +149,11 @@ export async function POST(request: NextRequest) {
 
     // Validate
     if (!name || !email) {
-      return reply(isForm, 400, { error: msg(locale, 'requiredFields') })
+      return reply(request, isForm, 400, { error: msg(locale, 'requiredFields') })
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email)) {
-      return reply(isForm, 400, { error: msg(locale, 'invalidEmail') })
+      return reply(request, isForm, 400, { error: msg(locale, 'invalidEmail') })
     }
 
     // GitHub config
@@ -151,12 +161,12 @@ export async function POST(request: NextRequest) {
     const GITHUB_REPO = process.env.GITHUB_REPO
     if (!GITHUB_TOKEN || !GITHUB_REPO) {
       console.error('Missing GitHub configuration')
-      return reply(isForm, 500, { error: msg(locale, 'configError') })
+      return reply(request, isForm, 500, { error: msg(locale, 'configError') })
     }
     const [owner, repo] = GITHUB_REPO.split('/')
     if (!owner || !repo) {
       console.error('Invalid GITHUB_REPO format')
-      return reply(isForm, 500, { error: msg(locale, 'configError') })
+      return reply(request, isForm, 500, { error: msg(locale, 'configError') })
     }
 
     // Spam scoring (the scorer expects the upstream field names)
@@ -168,7 +178,7 @@ export async function POST(request: NextRequest) {
       message: message || `${goal} inquiry`,
     })
     if (spamScore >= 80) {
-      return reply(isForm, 200, { success: true })
+      return reply(request, isForm, 200, { success: true })
     }
 
     // Optional AI classification (no-op without ANTHROPIC_API_KEY)
@@ -178,6 +188,7 @@ export async function POST(request: NextRequest) {
     if (goal === 'Buy my first home') labels.push('first-time-buyer')
     else if (goal === 'Sell my home') labels.push('seller')
     else if (goal === 'Plan a move for retirement') labels.push('retirement')
+    else if (goal === 'Join Signature Elite Properties as an agent') labels.push('agent-candidate')
     if (spamScore >= 50) labels.push('suspected-spam')
     if (classification.urgency === 'high') labels.push('urgent')
 
@@ -227,12 +238,12 @@ _Reply to this person directly at ${email}${phone ? ' or ' + phone : ''}. Close 
 
     if (!response.ok) {
       console.error('Failed to save contact', await response.text())
-      return reply(isForm, 500, { error: msg(locale, 'saveError') })
+      return reply(request, isForm, 500, { error: msg(locale, 'saveError') })
     }
 
-    return reply(isForm, 201, { success: true, message: msg(locale, 'success') })
+    return reply(request, isForm, 201, { success: true, message: msg(locale, 'success') })
   } catch (error) {
     console.error('Error:', error)
-    return reply(isForm, 500, { error: msg(locale, 'unexpectedError') })
+    return reply(request, isForm, 500, { error: msg(locale, 'unexpectedError') })
   }
 }

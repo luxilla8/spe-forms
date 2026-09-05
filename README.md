@@ -1,6 +1,6 @@
 # spe-forms
 
-The contact endpoint for the Signature Properties Elite website (`luxilla8/spe-site`). A fork of [GitForms](https://github.com/Luigigreco/gitforms), which turns each form submission into a GitHub Issue, so there is no database and no monthly fee. GitHub's own notifications email the repo owner for every new issue.
+The contact endpoint for the Signature Elite Properties website (`luxilla8/spe-site`). A fork of [GitForms](https://github.com/Luigigreco/gitforms), which turns each form submission into a GitHub Issue, so there is no database and no monthly fee. GitHub's own notifications email the repo owner for every new issue.
 
 ```
 Site form (index.html)  →  POST /api/contact on this app  →  one Issue in luxilla8/spe-leads  →  email notification

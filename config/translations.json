@@ -1,13 +1,13 @@
 {
   "en": {
     "title": "Tell us what you're looking for.",
-    "subtitle": "Send a few details and she'll reach out to set up a conversation.",
+    "subtitle": "Send a few details and we'll reach out to set up a conversation.",
     "fields": {
       "name": "Your name",
       "email": "Email",
       "phone": "Phone (optional)",
       "goal": "What are you hoping to do?",
-      "message": "Anything you'd like Arlean to know?"
+      "message": "Anything you'd like us to know?"
     },
     "placeholders": {
       "name": "",
@@ -17,11 +17,11 @@
       "message": ""
     },
     "buttons": {
-      "submit": "Send to Arlean",
+      "submit": "Send",
       "submitting": "Sending"
     },
     "messages": {
-      "success": "Sent. Arlean will be in touch soon.",
+      "success": "Sent. We'll be in touch soon.",
       "error": "Error",
       "requiredFields": "Please fill in all required fields.",
       "invalidEmail": "Please enter a valid email address.",
